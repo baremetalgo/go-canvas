@@ -2,6 +2,7 @@ package widgets
 
 import (
 	"fmt"
+	"go-canvas/globals"
 	"strings"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -15,6 +16,8 @@ var BlendModes = map[string]rl.BlendMode{
 }
 
 type LayerSlot struct {
+	Texture        rl.RenderTexture2D
+	Strokes        []*globals.Stroke
 	SlotID         float32
 	SlotIndex      float32
 	Editor         *LayerEditor
@@ -45,10 +48,14 @@ type LayerSlot struct {
 	delete_requested    bool
 	move_up_requested   bool
 	move_down_requested bool
+
+	lastClickTime float64
+	doubleClickMs float64
 }
 
 func NewLayerSlot(editor *LayerEditor, id float32) *LayerSlot {
 	new_slot := LayerSlot{}
+	new_slot.Texture = rl.LoadRenderTexture(globals.CANVAS_WIDTH, globals.CANVAS_HEIGHT)
 	new_slot.SlotID = float32(id + 1)
 	new_slot.SlotIndex = float32(id + 1)
 	new_slot.Name = fmt.Sprintf("Layer_%v", id+1)
@@ -66,8 +73,57 @@ func NewLayerSlot(editor *LayerEditor, id float32) *LayerSlot {
 	new_slot.DebugDraw = false
 	new_slot.Active_blend_mode = rl.NewRectangle(0, 0, 0, 0)
 	new_slot.delete_requested = false
+	new_slot.lastClickTime = 0
+	new_slot.doubleClickMs = 300
 
 	return &new_slot
+}
+
+func (s *LayerSlot) AddStroke(stroke *globals.Stroke) {
+	s.Strokes = append(s.Strokes, stroke)
+}
+
+func (s *LayerSlot) RemoveStroke(stroke *globals.Stroke) {
+	new_list := make([]*globals.Stroke, 0)
+	for _, stroke_ := range s.Strokes {
+		if stroke_.Id == stroke.Id {
+			stroke_ = nil
+			continue
+		}
+		new_list = append(new_list, stroke_)
+	}
+	s.Strokes = new_list
+}
+
+func (s *LayerSlot) GetStrokes() []*globals.Stroke {
+	return s.Strokes
+}
+
+func (s *LayerSlot) GetId() float32 {
+	return s.SlotID
+}
+
+func (s *LayerSlot) GetIndex() float32 {
+	return s.SlotIndex
+}
+
+func (s *LayerSlot) GetBlendMode() string {
+	return s.BlendMode
+}
+
+func (s *LayerSlot) GetOpacity() float32 {
+	return s.Opacity
+}
+
+func (s *LayerSlot) GetTexture() rl.RenderTexture2D {
+	return s.Texture
+}
+func (s *LayerSlot) GetVisibility() bool {
+	return s.Visibility
+}
+
+func (s *LayerSlot) MakeActive() {
+	s.Editor.ActiveLayer = s
 }
 
 func (s *LayerSlot) Update() {
@@ -109,6 +165,17 @@ func (s *LayerSlot) Update() {
 			} else if s.Opacity > 1 {
 				s.Opacity = 1
 			}
+		}
+
+		// Double click to make active
+		if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
+			now := rl.GetTime() * 1000 // ms
+			if now-s.lastClickTime <= s.doubleClickMs {
+				// Double click detected
+				s.MakeActive()
+				fmt.Printf("Layer %s (ID %.0f) set active\n", s.Name, s.SlotID)
+			}
+			s.lastClickTime = now
 		}
 	}
 

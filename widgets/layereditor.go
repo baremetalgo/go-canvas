@@ -9,7 +9,7 @@ var SlotIcons map[string]rl.Texture2D
 type LayerEditor struct {
 	BaseWidget
 	Slots           []*LayerSlot
-	ActiveLayerId   int
+	ActiveLayer     *LayerSlot
 	BrushColor      rl.Color
 	HightlightColor rl.Color
 	AddLayerButton  rl.Rectangle
@@ -40,7 +40,7 @@ func NewLayerEditor(name string) *LayerEditor {
 	editor.HightlightColor = rl.NewColor(255, 255, 255, 50)
 	editor.DebugDraw = false
 	editor.AddSlot()
-
+	editor.ActiveLayer = editor.Slots[0]
 	return &editor
 }
 
@@ -56,6 +56,10 @@ func (e *LayerEditor) Draw() {
 	src := rl.NewRectangle(0, 0, float32(tex.Width), float32(tex.Height))
 	rl.DrawTexturePro(tex, src, e.AddLayerButton, rl.NewVector2(0, 0), 0, rl.White)
 
+	// Draw active Layer highlight
+	if e.ActiveLayer != nil {
+		rl.DrawRectangleLinesEx(e.ActiveLayer.Bounds, 3, rl.White)
+	}
 	e.DeleteSlots()
 	e.MoveSlots()
 }
