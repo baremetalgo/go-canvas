@@ -1,6 +1,7 @@
 package main
 
 import (
+	"go-canvas/globals"
 	"go-canvas/gui"
 	"go-canvas/widgets"
 
@@ -9,12 +10,12 @@ import (
 
 func HandleKeyboardInputs(brush *widgets.Brush) {
 	if rl.IsKeyDown(rl.KeyKpAdd) {
-		brush.Size += 1
+		brush.Size += 0.1
 	}
 
 	if rl.IsKeyDown(rl.KeyKpSubtract) {
 		if brush.Size > 1 {
-			brush.Size -= 1
+			brush.Size -= 0.1
 		}
 	}
 
@@ -36,47 +37,57 @@ func HandleKeyboardInputs(brush *widgets.Brush) {
 	}
 }
 
-func main() {
+func init_raylib_window() {
 	rl.SetConfigFlags(rl.FlagWindowResizable)
 	rl.SetConfigFlags(rl.FlagMsaa4xHint)
-	rl.InitWindow(800, 600, "Go-Painter!")
-	defer rl.CloseWindow()
+	rl.InitWindow(1024, 786, "Go-Painter!")
 
-	widgets.LoadPatterns()
-	defer func() {
-		for _, tex := range widgets.Patterns {
-			rl.UnloadTexture(tex)
-		}
-	}()
+}
+func main() {
+	init_raylib_window()
+	defer rl.CloseWindow()
+	globals.LoadToolBoxIcons()
+
+	// widgets.LoadPatterns()
+	// defer func() {
+	// 	for _, tex := range widgets.Patterns {
+	// 		rl.UnloadTexture(tex)
+	// 	}
+	// }()
+
 	widgets.InitializeFonts()
 
 	ui := gui.NewUserInterface()
+	canvas_texture := ui.PaintCanvas.Texture.Texture
 
 	for !rl.WindowShouldClose() {
 		active_layer := ui.PaintCanvas.LayerEditor.ActiveLayer
 		HandleKeyboardInputs(ui.PaintCanvas.Brush)
 
 		// Paint new strokes to the layer texture
-		ui.PaintCanvas.Brush.PaintLayer(active_layer)
+		ui.PaintCanvas.Brush.PaintLayer(active_layer, ui.PaintCanvas)
 		ui.PaintCanvas.Brush.DrawStrokes(ui.PaintCanvas.LayerEditor)
 
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.LightGray)
-
+		ui.Draw()
 		// Draw the layer texture
 		ui.PaintCanvas.CompositeLayers()
-		text := ui.PaintCanvas.Texture.Texture
-		src := rl.NewRectangle(0, 0, float32(text.Width), float32(text.Height))
-		dst := rl.NewRectangle(100, 100, float32(text.Width), float32(text.Height))
+		tex_x := float32(rl.GetScreenWidth())/2 - float32(canvas_texture.Width)/2
+		tex_y := float32(rl.GetScreenHeight())/2 - float32(canvas_texture.Height)/2
+
+		src := rl.NewRectangle(0, 0, float32(canvas_texture.Width), float32(canvas_texture.Height))
+		dst := rl.NewRectangle(tex_x, tex_y, float32(canvas_texture.Width), float32(canvas_texture.Height))
+
 		rl.DrawTexturePro(
-			text,
+			canvas_texture,
 			src,
 			dst,
 			rl.Vector2{X: 0, Y: 0},
 			0,
-			rl.Red,
+			rl.White,
 		)
-		ui.Draw()
+
 		// Draw brush preview
 		ui.PaintCanvas.Brush.DrawBrush(active_layer)
 

@@ -91,6 +91,7 @@ func (e *LayerEditor) Update() {
 func (e *LayerEditor) AddSlot() {
 	new_slot := NewLayerSlot(e, float32(len(e.Slots)))
 	e.Slots = append(e.Slots, new_slot)
+	e.ActiveLayer = new_slot
 
 }
 

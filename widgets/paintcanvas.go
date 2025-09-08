@@ -11,18 +11,20 @@ type PaintCanvas struct {
 	Texture         rl.RenderTexture2D
 	LayerEditor     *LayerEditor
 	Brush           *Brush
+	ColorSet        *ColorSet
 	Active_Layer_Id float32
 }
 
-func NewPaintCanvas(name string, layer_editor *LayerEditor) *PaintCanvas {
+func NewPaintCanvas(name string, layer_editor *LayerEditor, color_set *ColorSet) *PaintCanvas {
 	canvas := PaintCanvas{}
 	canvas.LayerEditor = layer_editor
 	canvas.Brush = NewBrush()
+	canvas.ColorSet = color_set
 	canvas.Texture = rl.LoadRenderTexture(
 		globals.CANVAS_WIDTH, globals.CANVAS_HEIGHT)
 	canvas.Visible = true
 	canvas.Name = name
-	canvas.BodyColor = rl.NewColor(50, 50, 50, 30)
+	canvas.BodyColor = rl.White
 	canvas.DrawTitleBar = false
 	canvas.TextColor = rl.White
 	canvas.Width = globals.CANVAS_WIDTH
@@ -37,7 +39,16 @@ func (s *PaintCanvas) Draw() {
 	s.BaseWidget.Draw()
 	s.Update()
 
-	// rl.DrawRectanglePro(s.Bounds, rl.NewVector2(0, 0), 0, rl.White)
+	screenWidth := int32(rl.GetScreenWidth())
+	screenHeight := int32(rl.GetScreenHeight())
+
+	// Center the rectangle
+	s.Bounds = rl.NewRectangle(
+		float32(screenWidth)/2-float32(s.Width)/2,
+		float32(screenHeight)/2-float32(s.Height)/2,
+		float32(s.Width),
+		float32(s.Height),
+	)
 
 }
 func (s *PaintCanvas) Update() {
@@ -47,13 +58,14 @@ func (s *PaintCanvas) Update() {
 	} else {
 		rl.SetMouseCursor(rl.MouseCursorDefault)
 	}
+	s.Brush.Update(s.LayerEditor, s.ColorSet.CurrentColor)
 
 }
 
 func (c *PaintCanvas) CompositeLayers() {
 	// Composite all layers into the final texture
 	rl.BeginTextureMode(rl.RenderTexture2D(c.Texture))
-	// rl.ClearBackground(rl.Blank)
+	rl.ClearBackground(rl.Blank)
 
 	for _, layer := range c.LayerEditor.Slots {
 		if !layer.Visibility {
@@ -64,7 +76,7 @@ func (c *PaintCanvas) CompositeLayers() {
 		// Draw the layer texture with its opacity
 		rl.DrawTextureRec(
 			layer.Texture.Texture,
-			rl.Rectangle{X: 0, Y: 0, Width: float32(c.Width), Height: -float32(c.Height)},
+			rl.Rectangle{X: 0, Y: 0, Width: float32(c.Width), Height: float32(c.Height)},
 			rl.Vector2{X: 0, Y: 0},
 			rl.Fade(rl.White, layer.Opacity),
 		)

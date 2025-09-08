@@ -16,23 +16,33 @@ type UserInterface struct {
 
 func NewUserInterface() *UserInterface {
 	ui := &UserInterface{}
-	ui.ToolBox = widgets.NewToolBox("Tools")
-	ui.MenuBar = widgets.NewMenuBar("Menu")
-	ui.ColorSet = widgets.NewColorSet("Colors", ui.ToolBox)
-	ui.BrushPattenBar = widgets.NewBrushPatternBar("Patterns")
 	ui.LayerEditor = widgets.NewLayerEditor("Layer Editor")
+	ui.ToolBox = widgets.NewToolBox("Tools", ui)
+	ui.ColorSet = widgets.NewColorSet("Colors", ui.ToolBox)
+	ui.PaintCanvas = widgets.NewPaintCanvas("Canvas", ui.LayerEditor, ui.ColorSet)
+
+	ui.MenuBar = widgets.NewMenuBar("Menu")
+	ui.BrushPattenBar = widgets.NewBrushPatternBar("Patterns", ui.PaintCanvas)
 	ui.StatusBar = widgets.NewStatusBar("StatusBar")
-	ui.PaintCanvas = widgets.NewPaintCanvas("Canvas", ui.LayerEditor)
+
 	return ui
 }
 
-func (w *UserInterface) Draw() {
-	w.PaintCanvas.Draw()
-	w.MenuBar.Draw()
-	w.ToolBox.Draw()
-	w.ColorSet.Draw()
-	w.BrushPattenBar.Draw()
-	w.LayerEditor.Draw()
-	w.StatusBar.Draw()
+func (u *UserInterface) GetLayerEditor() *widgets.LayerEditor {
+	return u.LayerEditor
+}
+
+func (u *UserInterface) GetCanvas() *widgets.PaintCanvas {
+	return u.PaintCanvas
+}
+
+func (u *UserInterface) Draw() {
+	u.PaintCanvas.Draw()
+	u.MenuBar.Draw()
+	u.ToolBox.Draw()
+	u.ColorSet.Draw()
+	u.BrushPattenBar.Draw()
+	u.LayerEditor.Draw()
+	u.StatusBar.Draw()
 
 }

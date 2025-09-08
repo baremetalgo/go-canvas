@@ -9,10 +9,12 @@ import (
 )
 
 var BlendModes = map[string]rl.BlendMode{
+	"Normal":   rl.BlendDstRgb,
 	"Alpha":    rl.BlendAlpha,
 	"Add":      rl.BlendAdditive,
 	"Colors":   rl.BlendAddColors,
 	"Multiply": rl.BlendMultiplied,
+	"Subtract": rl.BlendSubtractColors,
 }
 
 type LayerSlot struct {
@@ -61,7 +63,7 @@ func NewLayerSlot(editor *LayerEditor, id float32) *LayerSlot {
 	new_slot.Name = fmt.Sprintf("Layer_%v", id+1)
 	new_slot.Visibility = true
 	new_slot.Opacity = 1
-	new_slot.BlendMode = "Add"
+	new_slot.BlendMode = "Normal"
 	new_slot.BlendTextColor = rl.DarkGreen
 	new_slot.delete_button_color = rl.NewColor(255, 255, 255, 150)
 	new_slot.upcolor = rl.NewColor(255, 255, 255, 150)
@@ -124,6 +126,15 @@ func (s *LayerSlot) GetVisibility() bool {
 
 func (s *LayerSlot) MakeActive() {
 	s.Editor.ActiveLayer = s
+}
+
+func (s *LayerSlot) Clear() {
+	// Clear strokes list
+	s.Strokes = s.Strokes[:0]
+
+	rl.BeginTextureMode(s.Texture)
+	rl.ClearBackground(rl.Blank)
+	rl.EndTextureMode()
 }
 
 func (s *LayerSlot) Update() {
@@ -191,7 +202,7 @@ func (s *LayerSlot) Update() {
 		s.BlendTextColor = rl.DarkGreen
 	}
 	if rl.CheckCollisionPointRec(mouse_pos, s.BlendButton) && rl.IsMouseButtonReleased(rl.MouseLeftButton) {
-		blendModeKeys := []string{"Alpha", "Add", "Colors", "Multiply"}
+		blendModeKeys := []string{"Normal", "Alpha", "Add", "Colors", "Multiply", "Subtract"}
 		next_blend_mode := nextElement(blendModeKeys, s.BlendMode)
 		s.BlendMode = next_blend_mode
 	}
