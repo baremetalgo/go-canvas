@@ -40,7 +40,7 @@ func HandleKeyboardInputs(brush *widgets.Brush) {
 func init_raylib_window() {
 	rl.SetConfigFlags(rl.FlagWindowResizable)
 	rl.SetConfigFlags(rl.FlagMsaa4xHint)
-	rl.InitWindow(1024, 786, "Go-Painter!")
+	rl.InitWindow(1024, 786, "Go-Canvas")
 
 }
 func main() {
@@ -48,13 +48,12 @@ func main() {
 	defer rl.CloseWindow()
 	globals.LoadToolBoxIcons()
 
-	// widgets.LoadPatterns()
-	// defer func() {
-	// 	for _, tex := range widgets.Patterns {
-	// 		rl.UnloadTexture(tex)
-	// 	}
-	// }()
-
+	defer func() {
+		for _, tex := range globals.BRUSH_PATTERNS {
+			rl.UnloadTexture(tex)
+		}
+	}()
+	globals.Init()
 	widgets.InitializeFonts()
 
 	ui := gui.NewUserInterface()
@@ -89,7 +88,7 @@ func main() {
 		)
 
 		// Draw brush preview
-		ui.PaintCanvas.Brush.DrawBrush(active_layer)
+		ui.PaintCanvas.Brush.DrawBrush(active_layer, ui.PaintCanvas)
 
 		rl.DrawFPS(100, 100)
 		rl.EndDrawing()

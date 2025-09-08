@@ -22,6 +22,7 @@ func NewPaintCanvas(name string, layer_editor *LayerEditor, color_set *ColorSet)
 	canvas.ColorSet = color_set
 	canvas.Texture = rl.LoadRenderTexture(
 		globals.CANVAS_WIDTH, globals.CANVAS_HEIGHT)
+	canvas.Texture.Texture.Format = rl.PixelFormat(8)
 	canvas.Visible = true
 	canvas.Name = name
 	canvas.BodyColor = rl.White
@@ -65,7 +66,7 @@ func (s *PaintCanvas) Update() {
 func (c *PaintCanvas) CompositeLayers() {
 	// Composite all layers into the final texture
 	rl.BeginTextureMode(rl.RenderTexture2D(c.Texture))
-	rl.ClearBackground(rl.Blank)
+	rl.ClearBackground(rl.White)
 
 	for _, layer := range c.LayerEditor.Slots {
 		if !layer.Visibility {

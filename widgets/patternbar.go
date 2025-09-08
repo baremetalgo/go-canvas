@@ -27,7 +27,7 @@ func NewBrushPatternBar(name string, canvas *PaintCanvas) *BrushPatternBar {
 	pattern_bar.Name = name
 	pattern_bar.DrawTitleBar = false
 	pattern_bar.TextColor = rl.White
-	pattern_bar.BodyColor = rl.NewColor(50, 50, 50, 20)
+	pattern_bar.BodyColor = rl.NewColor(50, 50, 50, 50)
 	pattern_bar.Width = 680
 	pattern_bar.Height = 70
 	pattern_bar.BorderThickness = 1

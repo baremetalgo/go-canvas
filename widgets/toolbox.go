@@ -139,6 +139,7 @@ func (t *ToolBox) Update() {
 
 				}
 				if button == &t.BucketShapeButton {
+					t.UserInterface.GetCanvas().Brush.Shape = Bucket
 
 				}
 				t.UserInterface.GetCanvas().Brush.UsePattern = false
