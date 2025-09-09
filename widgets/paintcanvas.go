@@ -1,6 +1,7 @@
 package widgets
 
 import (
+	"fmt"
 	"go-canvas/globals"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -40,9 +41,12 @@ func (s *PaintCanvas) Draw() {
 	s.BaseWidget.Draw()
 	s.Update()
 
+	rl.DrawTextEx(Default_Widget_Header_Font, fmt.Sprintf("%v x %v", s.Width, s.Height), rl.NewVector2(s.Bounds.X+float32(s.Width)-100, s.Bounds.Y-15), 14, 1, rl.Black)
+}
+
+func (s *PaintCanvas) Update() {
 	screenWidth := int32(rl.GetScreenWidth())
 	screenHeight := int32(rl.GetScreenHeight())
-
 	// Center the rectangle
 	s.Bounds = rl.NewRectangle(
 		float32(screenWidth)/2-float32(s.Width)/2,
@@ -51,11 +55,11 @@ func (s *PaintCanvas) Draw() {
 		float32(s.Height),
 	)
 
-}
-func (s *PaintCanvas) Update() {
 	mouse_pos := rl.GetMousePosition()
 	if rl.CheckCollisionPointRec(mouse_pos, s.Bounds) {
-		rl.SetMouseCursor(rl.MouseCursorPointingHand)
+		if s.Brush.Shape != Line {
+			rl.SetMouseCursor(rl.MouseCursorPointingHand)
+		}
 	} else {
 		rl.SetMouseCursor(rl.MouseCursorDefault)
 	}
@@ -68,20 +72,30 @@ func (c *PaintCanvas) CompositeLayers() {
 	rl.BeginTextureMode(rl.RenderTexture2D(c.Texture))
 	rl.ClearBackground(rl.White)
 
-	for _, layer := range c.LayerEditor.Slots {
+	// Iterate through layers in reverse order (from last to first)
+	for i := len(c.LayerEditor.Slots) - 1; i >= 0; i-- {
+		layer := c.LayerEditor.Slots[i]
 		if !layer.Visibility {
 			continue
 		}
-
-		rl.BeginBlendMode(BlendModes[layer.BlendMode])
-		// Draw the layer texture with its opacity
-		rl.DrawTextureRec(
-			layer.Texture.Texture,
-			rl.Rectangle{X: 0, Y: 0, Width: float32(c.Width), Height: float32(c.Height)},
-			rl.Vector2{X: 0, Y: 0},
-			rl.Fade(rl.White, layer.Opacity),
-		)
-		rl.EndBlendMode()
+		if layer.BlendToggle {
+			rl.BeginBlendMode(BlendModes[layer.BlendMode])
+			// Draw the layer texture with its opacity
+			rl.DrawTextureRec(
+				layer.Texture.Texture,
+				rl.Rectangle{X: 0, Y: 0, Width: float32(c.Width), Height: float32(c.Height)},
+				rl.Vector2{X: 0, Y: 0},
+				rl.Fade(rl.White, layer.Opacity),
+			)
+			rl.EndBlendMode()
+		} else {
+			rl.DrawTextureRec(
+				layer.Texture.Texture,
+				rl.Rectangle{X: 0, Y: 0, Width: float32(c.Width), Height: float32(c.Height)},
+				rl.Vector2{X: 0, Y: 0},
+				rl.Fade(rl.White, layer.Opacity),
+			)
+		}
 	}
 
 	rl.EndTextureMode()

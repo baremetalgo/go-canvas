@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"go-canvas/globals"
 	"go-canvas/gui"
 	"go-canvas/widgets"
@@ -8,7 +9,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-func HandleKeyboardInputs(brush *widgets.Brush) {
+func HandleKeyboardInputs(brush *widgets.Brush, canvas *widgets.PaintCanvas) {
 	if rl.IsKeyDown(rl.KeyKpAdd) {
 		brush.Size += 0.1
 	}
@@ -27,25 +28,37 @@ func HandleKeyboardInputs(brush *widgets.Brush) {
 		}
 	}
 	if rl.IsKeyPressed(rl.KeyS) {
-		rl.TakeScreenshot("painting.png")
+		file_name := globals.GenerateUniqueID()
+		rl.TakeScreenshot(fmt.Sprintf("%v_painting.png", file_name))
 	}
 	if rl.IsKeyPressed(rl.KeyP) {
 		brush.UsePattern = !brush.UsePattern
 		if brush.UsePattern {
-			brush.Pattern = widgets.Patterns[0] // pick first pattern
+			brush.Pattern = widgets.Patterns[0]
 		}
+	}
+
+	scroll := rl.GetMouseWheelMove()
+	if scroll != 0 {
+
 	}
 }
 
 func init_raylib_window() {
 	rl.SetConfigFlags(rl.FlagWindowResizable)
-	rl.SetConfigFlags(rl.FlagMsaa4xHint)
-	rl.InitWindow(1024, 786, "Go-Canvas")
+	// rl.SetConfigFlags(rl.FlagMsaa4xHint)
+	rl.InitWindow(1400, 786, "Go-Canvas")
 
 }
+
 func main() {
 	init_raylib_window()
+	icon := rl.LoadImage("icons/app.png")
+	rl.SetWindowIcon(*icon)
+	rl.UnloadImage(icon)
+	defer rl.UnloadImage(icon)
 	defer rl.CloseWindow()
+
 	globals.LoadToolBoxIcons()
 
 	defer func() {
@@ -53,6 +66,7 @@ func main() {
 			rl.UnloadTexture(tex)
 		}
 	}()
+
 	globals.Init()
 	widgets.InitializeFonts()
 
@@ -61,7 +75,7 @@ func main() {
 
 	for !rl.WindowShouldClose() {
 		active_layer := ui.PaintCanvas.LayerEditor.ActiveLayer
-		HandleKeyboardInputs(ui.PaintCanvas.Brush)
+		HandleKeyboardInputs(ui.PaintCanvas.Brush, ui.PaintCanvas)
 
 		// Paint new strokes to the layer texture
 		ui.PaintCanvas.Brush.PaintLayer(active_layer, ui.PaintCanvas)
@@ -90,7 +104,7 @@ func main() {
 		// Draw brush preview
 		ui.PaintCanvas.Brush.DrawBrush(active_layer, ui.PaintCanvas)
 
-		rl.DrawFPS(100, 100)
+		// rl.DrawFPS(100, 100)
 		rl.EndDrawing()
 	}
 }

@@ -1,8 +1,6 @@
 package widgets
 
 import (
-	"fmt"
-
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -132,10 +130,10 @@ func (t *ToolBox) Update() {
 				if button == &t.EraserDrawButton {
 					t.UserInterface.GetCanvas().Brush.Color = rl.Blank
 					t.UserInterface.GetCanvas().ColorSet.CurrentColor = rl.Blank
-					fmt.Println("sdsdsdsd")
 
 				}
 				if button == &t.LineShapeButton {
+					t.UserInterface.GetCanvas().Brush.Shape = Line
 
 				}
 				if button == &t.BucketShapeButton {

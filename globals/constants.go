@@ -9,18 +9,28 @@ import (
 	"github.com/google/uuid"
 )
 
-var CANVAS_WIDTH int32 = 800
-var CANVAS_HEIGHT int32 = 600
+var CANVAS_WIDTH int32 = 1024
+var CANVAS_HEIGHT int32 = 768
 var BRUSH_PATTERNS []rl.Texture2D
+var WINDOW_ICON *rl.Image
+
+func LoadWindowIcon() {
+	WINDOW_ICON = rl.LoadImage("/icons/app.png")
+
+}
 
 type Stroke struct {
 	Id         string
-	X, Y       float32
+	X          float32
+	Y          float32
 	Size       float32
 	Color      rl.Color
 	Shape      int
 	UsePattern bool
 	Pattern    rl.Texture2D
+	IsLine     bool    // Add this field
+	EndX       float32 // Add this field for line end point
+	EndY       float32 // Add this field for line end point
 }
 
 func GenerateUniqueID() string {

@@ -75,6 +75,7 @@ func (p *BrushPatternBar) Update() {
 			p.CurrentTexture = &globals.BRUSH_PATTERNS[i]
 			p.Canvas.Brush.Pattern = globals.BRUSH_PATTERNS[i]
 			p.Canvas.Brush.UsePattern = true
+			p.Canvas.Brush.Shape = Round
 		}
 	}
 
