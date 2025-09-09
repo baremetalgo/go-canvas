@@ -2,19 +2,30 @@ package widgets
 
 import (
 	"fmt"
+	"go-canvas/globals"
 	"strings"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 var BlendModes = map[string]rl.BlendMode{
-	"Alpha":    rl.BlendAlpha,
-	"Add":      rl.BlendAdditive,
-	"Colors":   rl.BlendAddColors,
-	"Multiply": rl.BlendMultiplied,
+	"BlendColors":     rl.BlendColor,
+	"Alpha":           rl.BlendAlpha,
+	"Additive":        rl.BlendAdditive,
+	"AddColors":       rl.BlendAddColors,
+	"BlendMultiply":   rl.BlendMultiplied,
+	"SubtractColor":   rl.BlendSubtractColors,
+	"PreMultAlpha":    rl.BlendAlphaPremultiply,
+	"BlendDstAlpha":   rl.BlendDstAlpha,
+	"BlendSrcAlpha":   rl.BlendSrcAlpha,
+	"BlendSrcRGB":     rl.BlendSrcRgb,
+	"BlenDstcRGB":     rl.BlendDstRgb,
+	"BlendMultiplied": rl.BlendMultiplied,
 }
 
 type LayerSlot struct {
+	Texture        rl.RenderTexture2D
+	Strokes        []*globals.Stroke
 	SlotID         float32
 	SlotIndex      float32
 	Editor         *LayerEditor
@@ -26,6 +37,7 @@ type LayerSlot struct {
 	HighLightColor rl.Color
 
 	BlendMode      string
+	BlendToggle    bool
 	Opacity        float32
 	BlendTextColor rl.Color
 
@@ -34,6 +46,8 @@ type LayerSlot struct {
 	BlendButton         rl.Rectangle
 	deleteButton        rl.Rectangle
 	delete_button_color rl.Color
+	blendButtonColor    rl.Color
+	BlendToggleButton   rl.Rectangle
 	upButton            rl.Rectangle
 	downButton          rl.Rectangle
 	upcolor             rl.Color
@@ -45,18 +59,24 @@ type LayerSlot struct {
 	delete_requested    bool
 	move_up_requested   bool
 	move_down_requested bool
+
+	lastClickTime float64
+	doubleClickMs float64
 }
 
 func NewLayerSlot(editor *LayerEditor, id float32) *LayerSlot {
 	new_slot := LayerSlot{}
+	new_slot.Texture = rl.LoadRenderTexture(globals.CANVAS_WIDTH, globals.CANVAS_HEIGHT)
 	new_slot.SlotID = float32(id + 1)
 	new_slot.SlotIndex = float32(id + 1)
 	new_slot.Name = fmt.Sprintf("Layer_%v", id+1)
 	new_slot.Visibility = true
 	new_slot.Opacity = 1
-	new_slot.BlendMode = "Add"
+	new_slot.BlendMode = "BlendColors"
+	new_slot.BlendToggle = false
 	new_slot.BlendTextColor = rl.DarkGreen
 	new_slot.delete_button_color = rl.NewColor(255, 255, 255, 150)
+	new_slot.blendButtonColor = rl.NewColor(10, 10, 10, 100)
 	new_slot.upcolor = rl.NewColor(255, 255, 255, 150)
 	new_slot.downcolor = rl.NewColor(255, 255, 255, 150)
 	new_slot.Editor = editor
@@ -66,8 +86,66 @@ func NewLayerSlot(editor *LayerEditor, id float32) *LayerSlot {
 	new_slot.DebugDraw = false
 	new_slot.Active_blend_mode = rl.NewRectangle(0, 0, 0, 0)
 	new_slot.delete_requested = false
+	new_slot.lastClickTime = 0
+	new_slot.doubleClickMs = 300
 
 	return &new_slot
+}
+
+func (s *LayerSlot) AddStroke(stroke *globals.Stroke) {
+	s.Strokes = append(s.Strokes, stroke)
+}
+
+func (s *LayerSlot) RemoveStroke(stroke *globals.Stroke) {
+	new_list := make([]*globals.Stroke, 0)
+	for _, stroke_ := range s.Strokes {
+		if stroke_.Id == stroke.Id {
+			stroke_ = nil
+			continue
+		}
+		new_list = append(new_list, stroke_)
+	}
+	s.Strokes = new_list
+}
+
+func (s *LayerSlot) GetStrokes() []*globals.Stroke {
+	return s.Strokes
+}
+
+func (s *LayerSlot) GetId() float32 {
+	return s.SlotID
+}
+
+func (s *LayerSlot) GetIndex() float32 {
+	return s.SlotIndex
+}
+
+func (s *LayerSlot) GetBlendMode() string {
+	return s.BlendMode
+}
+
+func (s *LayerSlot) GetOpacity() float32 {
+	return s.Opacity
+}
+
+func (s *LayerSlot) GetTexture() rl.RenderTexture2D {
+	return s.Texture
+}
+func (s *LayerSlot) GetVisibility() bool {
+	return s.Visibility
+}
+
+func (s *LayerSlot) MakeActive() {
+	s.Editor.ActiveLayer = s
+}
+
+func (s *LayerSlot) Clear() {
+	// Clear strokes list
+	s.Strokes = s.Strokes[:0]
+
+	rl.BeginTextureMode(s.Texture)
+	rl.ClearBackground(rl.Blank)
+	rl.EndTextureMode()
 }
 
 func (s *LayerSlot) Update() {
@@ -84,7 +162,8 @@ func (s *LayerSlot) Update() {
 	s.LayerNameBounds = rl.NewVector2(s.VisButton.X+25, s.VisButton.Y+5)
 	layer_name_length := float32(rl.MeasureText(s.Name, 14))
 	s.BlendButton = rl.NewRectangle(s.LayerNameBounds.X+layer_name_length+25, s.LayerNameBounds.Y, 50, 20)
-	s.deleteButton = rl.NewRectangle(s.Bounds.X+s.Bounds.Width-30, s.Bounds.Y+s.Bounds.Height/2-10, 20, 20)
+	s.BlendToggleButton = rl.NewRectangle(s.LayerNameBounds.X+layer_name_length, s.LayerNameBounds.Y-5, 20, 20)
+	s.deleteButton = rl.NewRectangle(s.Bounds.X+s.Bounds.Width-25, s.Bounds.Y+s.Bounds.Height/2-10, 20, 20)
 	s.upButton = rl.NewRectangle(s.Bounds.X+s.Bounds.Width, s.Bounds.Y+10, 15, 15)
 	s.downButton = rl.NewRectangle(s.Bounds.X+s.Bounds.Width, s.Bounds.Y+s.Bounds.Height-20, 15, 15)
 
@@ -110,6 +189,17 @@ func (s *LayerSlot) Update() {
 				s.Opacity = 1
 			}
 		}
+
+		// Double click to make active
+		if rl.IsMouseButtonReleased(rl.MouseLeftButton) {
+			now := rl.GetTime() * 1000 // ms
+			if now-s.lastClickTime <= s.doubleClickMs {
+				// Double click detected
+				s.MakeActive()
+				fmt.Printf("Layer %s (ID %.0f) set active\n", s.Name, s.SlotID)
+			}
+			s.lastClickTime = now
+		}
 	}
 
 	if rl.CheckCollisionPointRec(mouse_pos, s.VisButton) {
@@ -124,7 +214,8 @@ func (s *LayerSlot) Update() {
 		s.BlendTextColor = rl.DarkGreen
 	}
 	if rl.CheckCollisionPointRec(mouse_pos, s.BlendButton) && rl.IsMouseButtonReleased(rl.MouseLeftButton) {
-		blendModeKeys := []string{"Alpha", "Add", "Colors", "Multiply"}
+		blendModeKeys := []string{"BlendColors", "Alpha", "Additive", "AddColors", "BlendMultiply", "SubtractColor",
+			"PreMultAlpha", "BlendDstAlpha", "BlendSrcAlpha", "BlendSrcRGB", "BlenDstcRGB", "BlendMultiplied"}
 		next_blend_mode := nextElement(blendModeKeys, s.BlendMode)
 		s.BlendMode = next_blend_mode
 	}
@@ -156,6 +247,14 @@ func (s *LayerSlot) Update() {
 	}
 	if rl.CheckCollisionPointRec(mouse_pos, s.downButton) && rl.IsMouseButtonReleased(rl.MouseButtonLeft) {
 		s.move_down_requested = true
+	}
+	if rl.CheckCollisionPointRec(mouse_pos, s.BlendToggleButton) && rl.IsMouseButtonReleased(rl.MouseButtonLeft) {
+		s.BlendToggle = !s.BlendToggle
+		if s.BlendToggle {
+			s.blendButtonColor = rl.White
+		} else {
+			s.blendButtonColor = rl.NewColor(10, 10, 10, 100)
+		}
 	}
 }
 
@@ -189,16 +288,14 @@ func (s *LayerSlot) Draw() {
 	rl.DrawTexturePro(vis_texture, src, s.VisButton, rl.NewVector2(0, 0), 0, rl.White)
 
 	// Draw layer name
-	new_name := s.StringPadRightBuilder(s.Name, 15)
+	new_name := s.StringPadRightBuilder(s.Name, 10)
 	s.Name = new_name
 	rl.DrawTextPro(Default_Widget_Header_Font, new_name, s.LayerNameBounds, rl.NewVector2(0, 0), 0, 14, 0, rl.Black)
-	layer_name_length := float32(rl.MeasureText(new_name, 14))
 
 	// Draw Blend Icon
 	icon_texture := SlotIcons["blend_icon"]
 	src = rl.NewRectangle(0, 0, float32(icon_texture.Width), float32(icon_texture.Height))
-	dst := rl.NewRectangle(s.LayerNameBounds.X+layer_name_length, s.LayerNameBounds.Y-5, 20, 20)
-	rl.DrawTexturePro(icon_texture, src, dst, rl.NewVector2(0, 0), 0, rl.White)
+	rl.DrawTexturePro(icon_texture, src, s.BlendToggleButton, rl.NewVector2(0, 0), 0, s.blendButtonColor)
 
 	// Draw Delete button
 	delete_texture := SlotIcons["delete_icon"]

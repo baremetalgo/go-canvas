@@ -1,17 +1,15 @@
 package widgets
 
 import (
-	"fmt"
-	"log"
-	"os"
+	"go-canvas/globals"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 type BrushPatternBar struct {
 	BaseWidget
+	Canvas         *PaintCanvas
 	Patterns       []rl.Rectangle
-	BrushPatterns  []rl.Texture2D
 	CurrentPattern rl.Rectangle
 	CurrentTexture *rl.Texture2D
 
@@ -20,17 +18,16 @@ type BrushPatternBar struct {
 	DebugDraw       bool
 }
 
-func NewBrushPatternBar(name string) *BrushPatternBar {
+func NewBrushPatternBar(name string, canvas *PaintCanvas) *BrushPatternBar {
 	pattern_bar := BrushPatternBar{}
-	pattern_bar.BrushPatterns = make([]rl.Texture2D, 0)
-	pattern_bar.LoadToolBoxIcons()
+	pattern_bar.Canvas = canvas
 	// Setup BaseWidget first
 	pattern_bar.BrushColor = rl.White
 	pattern_bar.Visible = true
 	pattern_bar.Name = name
 	pattern_bar.DrawTitleBar = false
 	pattern_bar.TextColor = rl.White
-	pattern_bar.BodyColor = rl.NewColor(50, 50, 50, 20)
+	pattern_bar.BodyColor = rl.NewColor(50, 50, 50, 50)
 	pattern_bar.Width = 680
 	pattern_bar.Height = 70
 	pattern_bar.BorderThickness = 1
@@ -48,7 +45,7 @@ func (p *BrushPatternBar) Draw() {
 
 	i := float32(0)
 	p.Patterns = nil
-	for _, texture := range p.BrushPatterns {
+	for _, texture := range globals.BRUSH_PATTERNS {
 		src := rl.Rectangle{X: 0, Y: 0, Width: float32(texture.Width), Height: float32(texture.Height)}
 		dest := rl.NewRectangle(p.Bounds.X+i, p.Bounds.Y, 50, 50)
 		p.Patterns = append(p.Patterns, dest)
@@ -75,27 +72,11 @@ func (p *BrushPatternBar) Update() {
 		}
 		if rl.IsMouseButtonPressed(rl.MouseButtonLeft) && rl.CheckCollisionPointRec(mouse_pos, p.Patterns[i]) {
 			p.CurrentPattern = p.Patterns[i]
-			p.CurrentTexture = &p.BrushPatterns[i]
+			p.CurrentTexture = &globals.BRUSH_PATTERNS[i]
+			p.Canvas.Brush.Pattern = globals.BRUSH_PATTERNS[i]
+			p.Canvas.Brush.UsePattern = true
+			p.Canvas.Brush.Shape = Round
 		}
-	}
-
-}
-
-func (p *BrushPatternBar) LoadToolBoxIcons() {
-	entries, err := os.ReadDir("./patterns")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	i := 0
-	for i < 12 {
-		texture := rl.LoadTexture(fmt.Sprintf("patterns/%v", entries[i].Name()))
-		p.BrushPatterns = append(p.BrushPatterns, texture)
-		i += 1
-		if i >= len(entries) {
-			break
-		}
-
 	}
 
 }

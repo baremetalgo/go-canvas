@@ -1,91 +1,110 @@
 package main
 
 import (
-	"mspaint_golang/core"
-	widgets "mspaint_golang/gui"
+	"fmt"
+	"go-canvas/globals"
+	"go-canvas/gui"
+	"go-canvas/widgets"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-func HandleKeyboardInputs(brush *core.Brush, layer *core.Layer) {
+func HandleKeyboardInputs(brush *widgets.Brush, canvas *widgets.PaintCanvas) {
 	if rl.IsKeyDown(rl.KeyKpAdd) {
-		brush.Size += 1
+		brush.Size += 0.1
 	}
 
 	if rl.IsKeyDown(rl.KeyKpSubtract) {
 		if brush.Size > 1 {
-			brush.Size -= 1
+			brush.Size -= 0.1
 		}
-	}
-	if rl.IsKeyPressed(rl.KeyX) {
-		layer.Strokes = nil
-		// Clear the texture
-		rl.BeginTextureMode(layer.Texture)
-		rl.ClearBackground(rl.Blank)
-		rl.EndTextureMode()
 	}
 
 	if rl.IsKeyPressed(rl.KeySpace) {
-		if brush.Shape == core.Circle {
-			brush.Shape = core.Rectangle
+		if brush.Shape == widgets.Circle {
+			brush.Shape = widgets.Rectangle
 		} else {
-			brush.Shape = core.Circle
+			brush.Shape = widgets.Circle
 		}
 	}
 	if rl.IsKeyPressed(rl.KeyS) {
-		rl.TakeScreenshot("painting.png")
+		file_name := globals.GenerateUniqueID()
+		rl.TakeScreenshot(fmt.Sprintf("%v_painting.png", file_name))
 	}
 	if rl.IsKeyPressed(rl.KeyP) {
 		brush.UsePattern = !brush.UsePattern
 		if brush.UsePattern {
-			brush.Pattern = core.Patterns[0] // pick first pattern
+			brush.Pattern = widgets.Patterns[0]
 		}
+	}
+
+	scroll := rl.GetMouseWheelMove()
+	if scroll != 0 {
+
 	}
 }
 
-func main() {
+func init_raylib_window() {
 	rl.SetConfigFlags(rl.FlagWindowResizable)
-	rl.SetConfigFlags(rl.FlagMsaa4xHint)
-	rl.InitWindow(800, 600, "Go-Painter!")
+	// rl.SetConfigFlags(rl.FlagMsaa4xHint)
+	rl.InitWindow(1400, 786, "Go-Canvas")
+
+}
+
+func main() {
+	init_raylib_window()
+	icon := rl.LoadImage("icons/app.png")
+	rl.SetWindowIcon(*icon)
+	rl.UnloadImage(icon)
+	defer rl.UnloadImage(icon)
 	defer rl.CloseWindow()
 
-	core.LoadPatterns()
+	globals.LoadToolBoxIcons()
+
 	defer func() {
-		for _, tex := range core.Patterns {
+		for _, tex := range globals.BRUSH_PATTERNS {
 			rl.UnloadTexture(tex)
 		}
 	}()
+
+	globals.Init()
 	widgets.InitializeFonts()
-	canvas := core.NewCanvas()
-	widgets := widgets.NewWidgets()
+
+	ui := gui.NewUserInterface()
+	canvas_texture := ui.PaintCanvas.Texture.Texture
 
 	for !rl.WindowShouldClose() {
-		active_layer := canvas.GetActiveLayer()
-		HandleKeyboardInputs(canvas.Brush, active_layer)
+		active_layer := ui.PaintCanvas.LayerEditor.ActiveLayer
+		HandleKeyboardInputs(ui.PaintCanvas.Brush, ui.PaintCanvas)
 
 		// Paint new strokes to the layer texture
-		canvas.Brush.PaintLayer(active_layer)
-		canvas.Brush.DrawStrokes(active_layer)
+		ui.PaintCanvas.Brush.PaintLayer(active_layer, ui.PaintCanvas)
+		ui.PaintCanvas.Brush.DrawStrokes(ui.PaintCanvas.LayerEditor)
 
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.LightGray)
-
+		ui.Draw()
 		// Draw the layer texture
-		rl.DrawTextureRec(
-			active_layer.Texture.Texture,
-			rl.Rectangle{
-				X: 0, Y: 0,
-				Width:  float32(active_layer.Texture.Texture.Width),
-				Height: -float32(active_layer.Texture.Texture.Height),
-			},
+		ui.PaintCanvas.CompositeLayers()
+		tex_x := float32(rl.GetScreenWidth())/2 - float32(canvas_texture.Width)/2
+		tex_y := float32(rl.GetScreenHeight())/2 - float32(canvas_texture.Height)/2
+
+		src := rl.NewRectangle(0, 0, float32(canvas_texture.Width), float32(canvas_texture.Height))
+		dst := rl.NewRectangle(tex_x, tex_y, float32(canvas_texture.Width), float32(canvas_texture.Height))
+
+		rl.DrawTexturePro(
+			canvas_texture,
+			src,
+			dst,
 			rl.Vector2{X: 0, Y: 0},
+			0,
 			rl.White,
 		)
 
 		// Draw brush preview
-		// canvas.Brush.DrawBrush()
-		widgets.Draw()
-		rl.DrawFPS(100, 100)
+		ui.PaintCanvas.Brush.DrawBrush(active_layer, ui.PaintCanvas)
+
+		// rl.DrawFPS(100, 100)
 		rl.EndDrawing()
 	}
 }

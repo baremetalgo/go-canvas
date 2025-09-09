@@ -6,8 +6,14 @@ import (
 
 var ToolBoxIcons map[string]rl.Texture2D
 
+type GUI interface {
+	GetLayerEditor() *LayerEditor
+	GetCanvas() *PaintCanvas
+}
+
 type ToolBox struct {
 	BaseWidget
+	UserInterface     GUI
 	CircleBrushButton rl.Rectangle
 	SquareBrushButton rl.Rectangle
 	ShapeDrawButton   rl.Rectangle
@@ -26,10 +32,10 @@ type ToolBox struct {
 	button_order    [8]*rl.Rectangle
 }
 
-func NewToolBox(name string) *ToolBox {
+func NewToolBox(name string, ui GUI) *ToolBox {
 	tool_box := ToolBox{}
 	tool_box.LoadToolBoxIcons()
-
+	tool_box.UserInterface = ui
 	// Setup BaseWidget first
 	tool_box.BrushColor = rl.White
 	tool_box.Visible = true
@@ -106,6 +112,35 @@ func (t *ToolBox) Update() {
 			rl.DrawRectangleLinesEx(*button, 10, t.HightlightColor)
 			if rl.IsMouseButtonPressed(rl.MouseButtonLeft) {
 				t.SelectedButton = *button
+				if button == &t.ClearDrawButton {
+					t.UserInterface.GetLayerEditor().ActiveLayer.Clear()
+				}
+				if button == &t.CircleBrushButton {
+					t.UserInterface.GetCanvas().Brush.Shape = Circle
+				}
+				if button == &t.SquareBrushButton {
+					t.UserInterface.GetCanvas().Brush.Shape = Rectangle
+				}
+				if button == &t.CircleShapeButton {
+					t.UserInterface.GetCanvas().Brush.Shape = Round
+				}
+				if button == &t.SquareShapeButton {
+					t.UserInterface.GetCanvas().Brush.Shape = Square
+				}
+				if button == &t.EraserDrawButton {
+					t.UserInterface.GetCanvas().Brush.Color = rl.Blank
+					t.UserInterface.GetCanvas().ColorSet.CurrentColor = rl.Blank
+
+				}
+				if button == &t.LineShapeButton {
+					t.UserInterface.GetCanvas().Brush.Shape = Line
+
+				}
+				if button == &t.BucketShapeButton {
+					t.UserInterface.GetCanvas().Brush.Shape = Bucket
+
+				}
+				t.UserInterface.GetCanvas().Brush.UsePattern = false
 			}
 
 		}
